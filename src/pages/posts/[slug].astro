@@ -1,0 +1,37 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Workspace from '../../layouts/Workspace.astro';
+import { coverFor, formatDate, portfolio, postUrl, readingMinutes, sortedPosts, tagUrl } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  return (await sortedPosts(import.meta.env.DEV)).map(post => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const posts = await sortedPosts();
+const { title, description, date, cover, coverAlt, tags, sample, status } = post.data;
+const image = coverFor(post);
+const visible = status === 'published';
+const articleData = JSON.stringify({
+  '@context': 'https://schema.org', '@type': 'BlogPosting', headline: title, description,
+  datePublished: date.toISOString(), image: new URL(image, Astro.site).href,
+  mainEntityOfPage: new URL(postUrl(post), Astro.site).href,
+  author: { '@type': 'Person', name: 'Ryan Gao', url: portfolio },
+}).replaceAll('<', '\\u003c');
+---
+<Base workspace {title} {description} {image} type="article" noindex={!visible}>
+  {visible && <script slot="head" type="application/ld+json" set:html={articleData} />}
+  <Workspace {posts} current={post}>
+    <article class="article" data-post-article>
+      {(sample || !visible) && <p class="eyebrow article-status">{!visible ? 'Draft preview' : 'Sample post'}</p>}
+      <h1 tabindex="-1" data-article-title>{title}</h1>
+      <p class="article-deck">{description}</p>
+      <p class="metadata">Ryan Gao<span aria-hidden="true">·</span><time datetime={date.toISOString()}>{formatDate(date)}</time><span aria-hidden="true">·</span>{readingMinutes(post)} min read</p>
+      {(cover || post.data.artwork !== 'auto') && <img class="article-cover" src={image} alt={coverAlt} decoding="async" />}
+      <div class="prose"><Content /></div>
+      {visible && tags.length > 0 && <nav class="tag-list" aria-label="Article topics">{tags.filter(tag => tag.trim()).map(tag => <a href={tagUrl(tag)}>{tag}</a>)}</nav>}
+    </article>
+  </Workspace>
+</Base>

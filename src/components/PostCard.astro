@@ -1,0 +1,19 @@
+---
+import { coverFor, formatDate, postUrl, readingMinutes, type Post } from '../lib/posts';
+interface Props { post: Post }
+const { post } = Astro.props;
+const { title, description, date, coverAlt, tags, sample } = post.data;
+---
+<article class="post-card">
+  <a class="post-link" href={postUrl(post)}>
+    <div class="card-art">
+      <img src={coverFor(post)} alt={coverAlt} loading="lazy" decoding="async" />
+    </div>
+    <div class="card-copy">
+      <p class="eyebrow card-category">{tags[0] ?? 'Writing'}{sample && <span> · Sample post</span>}</p>
+      <h2 class="card-title">{title}</h2>
+      <p class="summary">{description}</p>
+      <p class="metadata"><time datetime={date.toISOString()}>{formatDate(date)}</time><span aria-hidden="true">·</span>{readingMinutes(post)} min read</p>
+    </div>
+  </a>
+</article>

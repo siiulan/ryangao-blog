@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { sortedPosts, tagKey, type Post } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const groups = new Map<string, { tag: string; posts: Post[] }>();
+  for (const post of await sortedPosts()) {
+    for (const tag of post.data.tags.filter(tag => tag.trim())) {
+      const key = tagKey(tag);
+      const group = groups.get(key) ?? { tag: tag.trim(), posts: [] };
+      if (!group.posts.includes(post)) group.posts.push(post);
+      groups.set(key, group);
+    }
+  }
+  return [...groups].map(([tag, group]) => ({ params: { tag }, props: group }));
+}
+const { tag, posts } = Astro.props;
+---
+<Base title={tag}>
+  <section class="page-intro">
+    <a class="text-link" href="/posts/">All posts</a>
+    <h1>{tag}<span>.</span></h1>
+  </section>
+  <div class="post-grid">{posts.map(post => <PostCard {post} />)}</div>
+</Base>

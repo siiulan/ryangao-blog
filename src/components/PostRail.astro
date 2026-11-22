@@ -1,0 +1,42 @@
+---
+import { coverFor, formatDate, postUrl, readingMinutes, type Post } from '../lib/posts';
+
+interface Props {
+  posts: Post[];
+  selected?: Post;
+  featured?: Post;
+  previews?: boolean;
+  headingId: string;
+}
+
+const { posts, selected, featured, headingId, previews = false } = Astro.props;
+---
+<section class="post-rail-content" aria-labelledby={headingId}>
+  <div class="post-rail-heading">
+    <h2 id={headingId}>Posts</h2>
+  </div>
+  {posts.length > 0 ? (
+    <ul class="post-list">
+      {posts.map(post => (
+        <li>
+          <a class="post-row" href={postUrl(post)}
+            aria-current={selected?.id === post.id ? (previews ? 'true' : 'page') : undefined}
+            data-post-id={post.id}
+            data-preview-post={previews || undefined}
+            data-title={previews ? post.data.title : undefined}
+            data-description={previews ? post.data.description : undefined}
+            data-meta={previews ? `${formatDate(post.data.date)} · ${readingMinutes(post)} min read` : undefined}
+            data-label={previews ? (featured?.id === post.id ? 'Featured post' : (post.data.tags[0] || 'Post')) : undefined}
+            data-sample={previews && post.data.sample ? 'Sample post' : undefined}>
+            <img loading="lazy" decoding="async" src={coverFor(post)} alt="" width="68" height="54" />
+            <span class="post-row-copy">
+              <strong>{post.data.title}</strong>
+              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+            </span>
+            <span class="chevron" aria-hidden="true"></span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : <p class="workspace-empty">New posts will appear here.</p>}
+</section>

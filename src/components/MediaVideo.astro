@@ -1,0 +1,11 @@
+---
+const { src, title, caption, captions } = Astro.props;
+---
+<figure>
+  <!-- Captions are supplied in the editor for clips with dialogue or informative audio. -->
+  <video {src} aria-label={title} controls playsinline preload="metadata">
+    {captions && <track kind="captions" src={captions} srclang="en" label="English" default />}
+    <a href={src}>Download {title}</a>
+  </video>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

@@ -1,0 +1,12 @@
+---
+import Base from '../../layouts/Base.astro';
+import Workspace from '../../layouts/Workspace.astro';
+import { sortedPosts } from '../../lib/posts';
+
+const posts = await sortedPosts();
+const featured = posts.find(post => post.data.featured) ?? posts[0];
+const ordered = featured ? [featured, ...posts.filter(post => post !== featured)] : [];
+---
+<Base workspace>
+  <Workspace posts={ordered} {featured} />
+</Base>

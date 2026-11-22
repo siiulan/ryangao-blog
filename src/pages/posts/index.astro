@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { sortedPosts, tagKey, tagUrl } from '../../lib/posts';
+
+const posts = await sortedPosts();
+const tags = [...new Map(posts.flatMap(post => post.data.tags).filter(tag => tag.trim()).map(tag => [tagKey(tag), tag.trim()])).values()]
+  .sort((a, b) => a.localeCompare(b));
+---
+<Base title="Posts" description="Browse the latest notes from Ryan Gao.">
+  <section class="page-intro">
+    <h1>Posts<span>.</span></h1>
+    <p>Notes on building for the web, design, and motion.</p>
+    {tags.length > 0 && <nav class="tag-list" aria-label="Topics">{tags.map(tag => <a href={tagUrl(tag)}>{tag}</a>)}</nav>}
+  </section>
+  <section class="post-grid" aria-label="All posts">
+    {posts.map(post => <PostCard {post} />)}
+    {posts.length === 0 && <p class="empty">There are no published posts yet.</p>}
+  </section>
+</Base>

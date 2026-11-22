@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import { editUrl, formatDate, postUrl, sortedPosts } from '../lib/posts';
+
+const posts = await sortedPosts(true);
+---
+<Base title="Manage posts" noindex>
+  <section class="page-intro manage-intro">
+    <h1>Manage posts<span>.</span></h1>
+    <p>Preview a saved version, or open the editor to update or delete a post.</p>
+  </section>
+  <ul class="manage-list">
+    {posts.map(post => (
+      <li>
+        <div>
+          <p class="eyebrow">{post.data.status === 'draft' ? 'Draft' : 'Published'} · {formatDate(post.data.date)}</p>
+          <h2>{post.data.title}</h2>
+        </div>
+        <div class="manage-actions">
+          <a class="button" href={postUrl(post)} aria-label={`Preview ${post.data.title}`}>Preview</a>
+          <a class="button primary" href={editUrl(post)} aria-label={`Edit or delete ${post.data.title}`}>Edit or delete</a>
+        </div>
+      </li>
+    ))}
+  </ul>
+  {posts.length === 0 && <p class="empty">Use New post to start writing.</p>}
+</Base>

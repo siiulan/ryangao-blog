@@ -1,0 +1,48 @@
+---
+import '@fontsource-variable/space-grotesk';
+import '@fontsource-variable/inter';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '../styles/site.css';
+import Brand from '../components/Brand.astro';
+import { siteDescription, siteTitle } from '../lib/posts';
+
+const { title, description = siteDescription, image = '/art/post-emblem.webp', type = 'website', noindex = false, workspace = false } = Astro.props;
+const pageTitle = title ? `${title} | ${siteTitle}` : siteTitle;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const socialImage = new URL(image, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0c0b13" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex,nofollow" /> : <link rel="canonical" href={canonical} />}
+    <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    {!noindex && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="alternate" type="application/rss+xml" title={siteTitle} href="/rss.xml" />
+    <slot name="head" />
+  </head>
+  <body class:list={{ "workspace-page": workspace }}>
+    <a class="skip-link" href="#main">Skip to content</a>
+    {!workspace && <header class="topbar shell"><Brand /></header>}
+    <main id="main" class:list={[workspace ? "workspace-main" : "shell"]} tabindex="-1">
+      {!workspace && import.meta.env.DEV && (
+        <nav class="owner-bar" aria-label="Local author tools">
+          <span class="eyebrow">Local workspace</span>
+          <a class="button" href="/manage/">Manage posts</a>
+          <a class="button primary" href="/keystatic/collection/posts/create">New post</a>
+        </nav>
+      )}
+      <slot />
+    </main>
+  </body>
+</html>

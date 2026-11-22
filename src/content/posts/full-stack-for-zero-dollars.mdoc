@@ -1,0 +1,93 @@
+---
+title: How I built a production-grade full-stack app for $0 a month
+description: >-
+  The design decisions behind WealthWeGo: math in the browser, one edge server,
+  encryption, tests and releases, all on free tiers.
+date: 2026-11-22
+status: published
+featured: false
+tags:
+  - Web
+  - Engineering
+cover: /media/full-stack-for-zero-dollars/cover.webp
+coverAlt: >-
+  A stack of app layers, from the React app to the database and CI, with a
+  monthly bill of $0
+sample: false
+artwork: auto
+---
+[WealthWeGo](/posts/meet-wealthwego/) is a money planner, and people type their real income into it. I gave myself three rules, in order: cost comes first, then maintainability, then production-level security.
+
+Could free tiers carry real production engineering? They can, if the design works with their limits instead of against them.
+
+{% Figure
+   src="/media/full-stack-for-zero-dollars/free-tiers.webp"
+   alt="Each service in the stack with its job and its free allowance"
+   caption="Every piece of the stack, and what the free tier allows." /%}
+
+## 1. Let the browser do the heavy lifting
+
+On the free plan, a Cloudflare Worker gets about 10 ms of CPU per request. A 2,000-path market simulation doesn't fit. But every visitor brings a computer.
+
+So all the finance math runs in the browser, inside a Web Worker so typing never stutters. The server only stores and protects plans. That choice is also why guests never send anything at all.
+
+The math lives in one pure TypeScript package with no network, no storage and no clock: "today" is an argument. The browser, file import and the server all validate plans with the same schema, so they can't disagree. The random generator is seeded, so the same plan always gives the same range, and tests can check exact numbers.
+
+## 2. One server, one origin
+
+{% Figure
+   src="/media/full-stack-for-zero-dollars/architecture.webp"
+   alt="The browser, one Cloudflare Worker, an encrypted database and backups"
+   caption="One origin, one finance engine." /%}
+
+One Worker serves both the React app and the API, and every request passes through it first. Every response gets strict security headers. There's no CORS to configure, cookies are first-party, and there's one thing to deploy and monitor.
+
+The trade-off: static files count toward the 100,000 daily requests too. That's far from today's traffic, and the paid plan is $5 if it ever matters.
+
+A strict content policy with no third-party scripts also meant no YouTube embed. I hosted the intro video myself, then found Safari won't play it without byte-range responses, so the Worker now serves those.
+
+## 3. Security without a security budget
+
+- **Sign-in** uses Google with PKCE, state and nonce, and checks the token's signature. There are no passwords to store.
+- **Sessions** are random 32-byte cookies. The database keeps only their SHA-256 hash, so a leak can't sign anyone in.
+- **Plans** are encrypted with AES-256-GCM before they're stored, with the user's id bound in. A plan copied onto another account's row simply won't decrypt.
+- **Every write** must come from the site's own origin, and Cloudflare's free rate limits cap each IP and each account.
+- **Secrets** live only in Cloudflare, and every pull request is scanned for leaks.
+
+## 4. Never lose someone's plan
+
+Each save names the version it started from. If another device saved first, the server refuses (409) and the person chooses which to keep. Nothing is silently overwritten.
+
+Database changes ship in the same step as the code:
+
+```sh
+pnpm build             # build the app
+pnpm db:migrate:prod   # update the database
+wrangler deploy        # then go live
+```
+
+Because the migration runs moments before the new code goes live, migrations only add; anything removed waits for a later release. Every night a scheduled job writes an encrypted backup to R2, kept 30 days, on top of the database's own 7-day point-in-time restore.
+
+## 5. Tests that cost nothing
+
+{% Figure
+   src="/media/full-stack-for-zero-dollars/release-pipeline.webp"
+   alt="Four checkpoints: laptop, GitHub CI, staging, production"
+   caption="Nothing reaches users until it has been tested three times." /%}
+
+- **Property-based tests** throw random inputs at the math and check it against the compound-interest formula. The engine has 99% coverage.
+- **API tests** run against a real local database. Google is passed in as a dependency, so a fake Google can prove that a wrong nonce is rejected.
+- **168 browser tests** run on the production build at desktop and phone sizes, with an accessibility scan on every page.
+- **Lighthouse** scores every page 99–100 on mobile. CI fails below 90, because shared runners are noisy.
+
+All of it fits in GitHub's free 2,000 minutes: build once and reuse it, test in Chromium only, and cancel outdated runs.
+
+## 6. Ship like a team of one
+
+Staging is a full copy, with its own server, database and real Google sign-in. Cloudflare offered free preview links per branch, but they share production's database, so I turned them off before accounts existed. CI holds no deploy keys; Cloudflare deploys straight from git.
+
+## The real cost of free
+
+Not money, but it shaped the design. The limits pushed me toward choices I'd defend anyway: math on the user's device is cheaper and more private, and one origin is simpler and safer.
+
+[**Try WealthWeGo →**](https://wealthwego.siiulan.dev)

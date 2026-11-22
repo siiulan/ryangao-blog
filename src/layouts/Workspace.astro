@@ -1,0 +1,98 @@
+---
+import Brand from '../components/Brand.astro';
+import WorkspaceSettings from '../components/WorkspaceSettings.astro';
+import PostRail from '../components/PostRail.astro';
+import ShinyText from '../components/ShinyText';
+import blueLiquid from '../assets/backgrounds/14478075_1920_1080_30fps.mp4?url';
+import blackMetal from '../assets/backgrounds/black-metal-web.mp4?url';
+import silverWaves from '../assets/backgrounds/4779866-hd_1920_1080_30fps.mp4?url';
+import '../styles/workspace.css';
+import { editUrl, formatDate, postUrl, readingMinutes, siteDescription, type Post } from '../lib/posts';
+
+interface Props {
+  posts: Post[];
+  featured?: Post;
+  current?: Post;
+}
+
+const { posts, featured, current } = Astro.props;
+const reading = Boolean(current);
+const backgroundPlaylist = [
+  { id: 'blue-liquid', src: blueLiquid },
+  { id: 'black-metal', src: blackMetal },
+  { id: 'silver-waves', src: silverWaves },
+];
+---
+<div class:list={['workspace', { 'workspace-reading': reading }]} data-inline-workspace={!reading || undefined}>
+  <div class="workspace-backdrop" aria-hidden="true">
+    <video class="workspace-video" data-background-video data-playlist={JSON.stringify(backgroundPlaylist)} muted playsinline preload="none"></video>
+  </div>
+  <div class="workspace-frame">
+    <header class="workspace-bar">
+      <div><Brand /></div>
+      <div class="workspace-actions">
+        {import.meta.env.DEV && (
+          <nav class="glass workspace-owner" aria-label="Local author tools">
+            <a href="/manage/" data-astro-reload>Manage posts</a>
+            <a href={current ? editUrl(current) : '/keystatic/collection/posts/create'} data-workspace-edit>
+              {current ? 'Edit post' : 'New post'}
+            </a>
+          </nav>
+        )}
+        {(reading || posts.length > 0) && (
+          <details class="post-drawer" data-post-drawer hidden={!reading}>
+            <summary class="glass drawer-tab" aria-controls="article-post-list">
+              <span class="drawer-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Posts</span>
+            </summary>
+            <div class="glass drawer-panel" id="article-post-list">
+              <PostRail {posts} selected={current} headingId="drawer-posts-title" />
+            </div>
+          </details>
+        )}
+        <WorkspaceSettings />
+      </div>
+    </header>
+
+    <div class="workspace-body">
+      <div class="glass article-surface" hidden={!reading}>
+        <div class="article-scroll" role="region" tabindex="0" aria-label="Article reading area">
+          <div class="article-controls">
+            <a class="glass back-button" href="/home/" aria-label="Back to homepage" data-workspace-home>
+              <span class="back-chevron" aria-hidden="true"></span>
+              <span class="back-label" aria-hidden="true">Back</span>
+            </a>
+          </div>
+          <div data-workspace-article><slot /></div>
+        </div>
+      </div>
+      {!reading && (
+        <>
+          <section class="workspace-hero" aria-labelledby="hero-title">
+            <h1 id="hero-title"><span>Ryan Gao’s</span> <ShinyText client:load>Blog</ShinyText></h1>
+            <p>{siteDescription}</p>
+          </section>
+          {featured && (
+            <section class="glass preview-card" aria-labelledby="preview-title" data-preview>
+              <div class="preview-copy">
+                <p class="eyebrow"><span data-label>Featured post</span><span data-sample hidden={!featured.data.sample}> · Sample post</span></p>
+                <h2 id="preview-title" tabindex="-1" data-title>{featured.data.title}</h2>
+                <p class="preview-description" data-description>{featured.data.description}</p>
+                <p class="preview-meta" data-meta>{formatDate(featured.data.date)} · {readingMinutes(featured)} min read</p>
+              </div>
+              <a class="glass reading-action" href={postUrl(featured)} data-read data-post-id={featured.id}>Read more<span class="chevron" aria-hidden="true"></span></a>
+            </section>
+          )}
+          <div class="glass home-post-rail">
+            <PostRail {posts} selected={featured} {featured} headingId="home-posts-title" previews />
+          </div>
+        </>
+      )}
+    </div>
+    {!reading && <p class="visually-hidden" role="status" data-announcement></p>}
+  </div>
+</div>
+<script>
+  import '../lib/workspace';
+  import '../lib/background-video';
+</script>
